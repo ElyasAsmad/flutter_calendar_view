@@ -336,73 +336,71 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
               child: _headerBuilder(_currentDate),
             ),
             Expanded(
-              child: RefreshWrapper(
-                onRefresh: widget.onCalendarRefresh,
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: widget.pageViewPhysics,
-                  onPageChanged: _onPageChange,
-                  itemBuilder: (_, index) {
-                    final date =
-                        DateTime(_minDate.year, _minDate.month + index);
-                    final weekDays = date.datesOfWeek(start: widget.startDay);
-
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: _width,
-                          child: Row(
-                            children: List.generate(
-                              7,
-                              (index) => Expanded(
-                                child: SizedBox(
-                                  width: _cellWidth,
-                                  child:
-                                      _weekBuilder(weekDays[index].weekday - 1),
-                                ),
+              child: PageView.builder(
+                controller: _pageController,
+                physics: widget.pageViewPhysics,
+                onPageChanged: _onPageChange,
+                itemBuilder: (_, index) {
+                  final date =
+                      DateTime(_minDate.year, _minDate.month + index);
+                  final weekDays = date.datesOfWeek(start: widget.startDay);
+              
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: _width,
+                        child: Row(
+                          children: List.generate(
+                            7,
+                            (index) => Expanded(
+                              child: SizedBox(
+                                width: _cellWidth,
+                                child:
+                                    _weekBuilder(weekDays[index].weekday - 1),
                               ),
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: LayoutBuilder(builder: (context, constraints) {
-                            final _cellAspectRatio =
-                                widget.useAvailableVerticalSpace
-                                    ? calculateCellAspectRatio(
-                                        constraints.maxHeight,
-                                      )
-                                    : widget.cellAspectRatio;
-
-                            return SizedBox(
-                              height: _height,
+                      ),
+                      Expanded(
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          final _cellAspectRatio =
+                              widget.useAvailableVerticalSpace
+                                  ? calculateCellAspectRatio(
+                                      constraints.maxHeight,
+                                    )
+                                  : widget.cellAspectRatio;
+              
+                          return SizedBox(
+                            height: _height,
+                            width: _width,
+                            child: _MonthPageBuilder<T>(
+                              key: ValueKey(date.toIso8601String()),
+                              onCellTap: widget.onCellTap,
+                              onDateLongPress: widget.onDateLongPress,
                               width: _width,
-                              child: _MonthPageBuilder<T>(
-                                key: ValueKey(date.toIso8601String()),
-                                onCellTap: widget.onCellTap,
-                                onDateLongPress: widget.onDateLongPress,
-                                width: _width,
-                                height: _height,
-                                controller: controller,
-                                borderColor: widget.borderColor,
-                                borderSize: widget.borderSize,
-                                cellBuilder: _cellBuilder,
-                                cellRatio: _cellAspectRatio,
-                                date: date,
-                                showBorder: widget.showBorder,
-                                startDay: widget.startDay,
-                                physics: widget.pagePhysics,
-                                hideDaysNotInMonth: widget.hideDaysNotInMonth,
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    );
-                  },
-                  itemCount: _totalMonths,
-                ),
+                              height: _height,
+                              controller: controller,
+                              borderColor: widget.borderColor,
+                              borderSize: widget.borderSize,
+                              cellBuilder: _cellBuilder,
+                              cellRatio: _cellAspectRatio,
+                              date: date,
+                              showBorder: widget.showBorder,
+                              startDay: widget.startDay,
+                              physics: widget.pagePhysics,
+                              hideDaysNotInMonth: widget.hideDaysNotInMonth,
+                              onCalendarRefresh: widget.onCalendarRefresh,
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  );
+                },
+                itemCount: _totalMonths,
               ),
             ),
           ],
@@ -667,6 +665,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
   final WeekDays startDay;
   final ScrollPhysics physics;
   final bool hideDaysNotInMonth;
+  final RefreshCallback? onCalendarRefresh;
 
   const _MonthPageBuilder({
     Key? key,
@@ -684,6 +683,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
     required this.startDay,
     required this.physics,
     required this.hideDaysNotInMonth,
+    this.onCalendarRefresh,
   }) : super(key: key);
 
   @override
@@ -692,39 +692,42 @@ class _MonthPageBuilder<T> extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      child: GridView.builder(
-        padding: EdgeInsets.zero,
-        physics: physics,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 7,
-          childAspectRatio: cellRatio,
+      child: RefreshWrapper(
+        onRefresh: onCalendarRefresh,
+        child: GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: physics,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            childAspectRatio: cellRatio,
+          ),
+          itemCount: 42,
+          shrinkWrap: true,
+          itemBuilder: (context, index) {
+            final events = controller.getEventsOnDay(monthDays[index]);
+            return GestureDetector(
+              onTap: () => onCellTap?.call(events, monthDays[index]),
+              onLongPress: () => onDateLongPress?.call(monthDays[index]),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: showBorder
+                      ? Border.all(
+                          color: borderColor,
+                          width: borderSize,
+                        )
+                      : null,
+                ),
+                child: cellBuilder(
+                  monthDays[index],
+                  events,
+                  monthDays[index].compareWithoutTime(DateTime.now()),
+                  monthDays[index].month == date.month,
+                  hideDaysNotInMonth,
+                ),
+              ),
+            );
+          },
         ),
-        itemCount: 42,
-        shrinkWrap: true,
-        itemBuilder: (context, index) {
-          final events = controller.getEventsOnDay(monthDays[index]);
-          return GestureDetector(
-            onTap: () => onCellTap?.call(events, monthDays[index]),
-            onLongPress: () => onDateLongPress?.call(monthDays[index]),
-            child: Container(
-              decoration: BoxDecoration(
-                border: showBorder
-                    ? Border.all(
-                        color: borderColor,
-                        width: borderSize,
-                      )
-                    : null,
-              ),
-              child: cellBuilder(
-                monthDays[index],
-                events,
-                monthDays[index].compareWithoutTime(DateTime.now()),
-                monthDays[index].month == date.month,
-                hideDaysNotInMonth,
-              ),
-            ),
-          );
-        },
       ),
     );
   }
