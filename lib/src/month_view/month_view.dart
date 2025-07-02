@@ -5,6 +5,12 @@
 import 'package:flutter/material.dart';
 
 import '../../calendar_view.dart';
+import '../calendar_constants.dart';
+import '../calendar_controller_provider.dart';
+import '../calendar_event_data.dart';
+import '../components/components.dart';
+import '../components/refresh_wrapper.dart';
+import '../components/safe_area_wrapper.dart';
 import '../constants.dart';
 
 class MonthView<T extends Object?> extends StatefulWidget {
@@ -191,6 +197,8 @@ class MonthView<T extends Object?> extends StatefulWidget {
   /// defines that show and hide cell not is in current month
   final bool hideDaysNotInMonth;
 
+  final RefreshCallback? onCalendarRefresh;
+
   /// Main [Widget] to display month view.
   const MonthView({
     Key? key,
@@ -230,6 +238,7 @@ class MonthView<T extends Object?> extends StatefulWidget {
     this.onEventDoubleTap,
     this.showWeekTileBorder = true,
     this.hideDaysNotInMonth = false,
+    this.onCalendarRefresh,
   })  : assert(!(onHeaderTitleTap != null && headerBuilder != null),
             "can't use [onHeaderTitleTap] & [headerBuilder] simultaneously"),
         super(key: key);
@@ -714,6 +723,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
   final ScrollPhysics physics;
   final bool hideDaysNotInMonth;
   final int weekDays;
+  final RefreshCallback? onCalendarRefresh;
 
   const _MonthPageBuilder({
     Key? key,
@@ -732,6 +742,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
     required this.physics,
     required this.hideDaysNotInMonth,
     required this.weekDays,
+    this.onCalendarRefresh,
   }) : super(key: key);
 
   @override
@@ -746,43 +757,46 @@ class _MonthPageBuilder<T> extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: GridView.builder(
-        padding: EdgeInsets.zero,
-        physics: physics,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: weekDays,
-          childAspectRatio: cellRatio,
+      child: RefreshWrapper(
+        onRefresh: onCalendarRefresh,
+        child: GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: physics,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: weekDays,
+            childAspectRatio: cellRatio,
+          ),
+          itemCount: monthDays.length,
+          shrinkWrap: true,
+          itemBuilder: (context, index) {
+            // Hide events if `hideDaysNotInMonth` true
+            final events =
+                hideDaysNotInMonth && (monthDays[index].month != date.month)
+                    ? <CalendarEventData<T>>[]
+                    : controller.getEventsOnDay(monthDays[index]);
+            return GestureDetector(
+              onTap: () => onCellTap?.call(events, monthDays[index]),
+              onLongPress: () => onDateLongPress?.call(monthDays[index]),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: showBorder
+                      ? Border.all(
+                          color: borderColor,
+                          width: borderSize,
+                        )
+                      : null,
+                ),
+                child: cellBuilder(
+                  monthDays[index],
+                  events,
+                  monthDays[index].compareWithoutTime(DateTime.now()),
+                  monthDays[index].month == date.month,
+                  hideDaysNotInMonth,
+                ),
+              ),
+            );
+          },
         ),
-        itemCount: monthDays.length,
-        shrinkWrap: true,
-        itemBuilder: (context, index) {
-          // Hide events if `hideDaysNotInMonth` true
-          final events =
-              hideDaysNotInMonth && (monthDays[index].month != date.month)
-                  ? <CalendarEventData<T>>[]
-                  : controller.getEventsOnDay(monthDays[index]);
-          return GestureDetector(
-            onTap: () => onCellTap?.call(events, monthDays[index]),
-            onLongPress: () => onDateLongPress?.call(monthDays[index]),
-            child: Container(
-              decoration: BoxDecoration(
-                border: showBorder
-                    ? Border.all(
-                        color: borderColor,
-                        width: borderSize,
-                      )
-                    : null,
-              ),
-              child: cellBuilder(
-                monthDays[index],
-                events,
-                monthDays[index].compareWithoutTime(DateTime.now()),
-                monthDays[index].month == date.month,
-                hideDaysNotInMonth,
-              ),
-            ),
-          );
-        },
       ),
     );
   }
