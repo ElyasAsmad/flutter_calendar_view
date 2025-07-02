@@ -1,9 +1,66 @@
-# [1.2.1 - Unreleased]
+# [2.0.0 - 25 Jun 2025](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/tree/2.0.0)
 
+- Added clear method to `EventController`.
+- Added `onEventTapDetails`, `onEventDoubleTapDetails` & `onEventLongTapDetails` gesture recognizers
+  to get tap
+  details. [#390](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/390)
+- Fixed `hourLinePainter` has no effect in `DayView` and
+  `WeekView`. [#461](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/461)
+- Fixed `onEventTap` in `MonthView` to ignore when it is
+  null. [#278](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/278)
+- Fixed Splash issue on timeline in `WeekView` and `DayView` when `onTimestampTap` is
+  null. [#459](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/459)
+- Fixed recurring event not properly working in
+  example. [#473](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/pull/473)
+- Added multi day event
+  support. [#333](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/333)
+- Added support for custom time provider in live time
+  indicator. [#460](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/460)
+- Fixed example app to run on flutter
+  v3.32.4. [#478](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/pull/478)
+- Updated `README.md` to use documentation
+  website. [#469](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/pull/469)
+- Fixed resizing the window automatically scrolls the page to the top in 
+  example app. [#480](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/480)
+
+# [1.4.0 - 7 Jan 2025](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/tree/1.4.0)
+
+- Adds `showWeekends` flag in month view to hide & show weekends view. 
+  Default is `showWeekends = true` shows all weekdays. [#385](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/385)
+- Events are now hidden for days not in the current month when hideDaysNotInMonth = true
+- Fixes right icon always shows default icon in `CalendarPageHeader` when providing custom icon. [#432](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/432)
+- Adds `hideDaysNotInMonth` argument in `cellBuilder` in readme. [#433](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/433)
+- Fixes `titleColor` of date for `hideDaysNotInMonth: false`.
+- Fixes tap `onTileDoubleTap` & `onTileLongTap` issue for `hideDaysNotInMonth` in month view. [#435](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/435)
+- Fixes `startHour` and `endHour` not updating when rebuilding in week view. [#410](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/410)
+- Fixes issue of header icon `color` property in `IconDataConfig`.
+- Adds support for single day & full day recurring events. [#378](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/378)
+- Fixes `HeaderStyle` icons visibility on min & max dates reached. [#429](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/429)
+- Fixes inconsistent padding issue of right icon in the `HeaderStyle`.
+- Fixes issue of update scroll offset manually. [#391](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/391)
+
+# [1.3.0 - 12 Nov 2024](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/tree/1.3.0)
+
+- Fixes full day event position when fullHeaderTitle is empty.
+- Fixes generics of _InternalDayViewPageState is always
+  Object?. [#371](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/371)
 - Fixes issue in showing quarter hours when startHour is provided. [#387](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/387)
 - Use `hourLinePainter` in `DayView` [#386](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/386)
 - Refactor `SideEventArranger` to arrange events properly. [#290](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/290)
 - Adds generic type in `_InternalWeekViewPageState`. [#380](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/380)
+- Adds additional configurations for `HeaderStyle`.
+    - Added `mainAxisSize`, `mainAxisAlignment`, `rightIconConfig` and `leftIconConfig`.
+- Adds additional configurations for `CalendarPageHeader`, `MonthPageHeader`, `DayPageHeader` and `WeekPageHeader`.
+    - Added `titleBuilder` to build custom title for header.
+- Fixes issue calendar scroll physics for day & week view. [#417](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/417)
+- Adds `onTimestampTap` callback in `WeekView`
+  and `DayView`.  [#383](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/383)
+- Use `maxWidth` to set max width of event slot in day & week view. [#413](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/issues/413)
+- `Deprecations`:
+    - deprecated `backgroundColor` and `iconColor` from `CalendarPageHeader`, `DayPageHeader`, `MonthPageHeader` and `WeekPageHeader`.
+        - **Solution:** use `headerStyle` instead.
+    - deprecated `leftIconVisible`, `rightIconVisible`, `leftIconPadding`, `rightIconPadding`, `leftIcon` and `rightIcon` from `HeaderStyle`.
+        - **Solution:** use `rightIconConfig` and `leftIconConfig` instead.
 
 # [1.2.0 - 10 May 2024](https://github.com/SimformSolutionsPvtLtd/flutter_calendar_view/tree/1.2.0)
 

@@ -7,10 +7,7 @@ import 'package:flutter/material.dart';
 import '../calendar_constants.dart';
 import '../calendar_controller_provider.dart';
 import '../calendar_event_data.dart';
-import '../components/common_components.dart';
 import '../components/components.dart';
-import '../components/event_scroll_notifier.dart';
-import '../components/safe_area_wrapper.dart';
 import '../constants.dart';
 import '../enumerations.dart';
 import '../event_arrangers/event_arrangers.dart';
@@ -31,6 +28,13 @@ class WeekView<T extends Object?> extends StatefulWidget {
   final DateWidgetBuilder? timeLineBuilder;
 
   /// Header builder for week page header.
+  ///
+  /// If there are some configurations that is not directly available
+  /// in [WeekView], override this to create your custom header or reuse,
+  /// [CalendarPageHeader] | [DayPageHeader] | [MonthPageHeader] |
+  /// [WeekPageHeader] widgets provided by this package with your custom
+  /// configurations.
+  ///
   final WeekPageHeaderBuilder? weekPageHeaderBuilder;
 
   /// Builds custom PressDetector widget
@@ -145,6 +149,9 @@ class WeekView<T extends Object?> extends StatefulWidget {
   /// Scroll offset of week view page.
   final double scrollOffset;
 
+  /// This method will be called when user taps on timestamp in timeline.
+  final TimestampCallback? onTimestampTap;
+
   /// Called when user taps on event tile.
   final CellTapCallback<T>? onEventTap;
 
@@ -226,6 +233,9 @@ class WeekView<T extends Object?> extends StatefulWidget {
   /// If true this will show week day at bottom position.
   final bool showWeekDayAtBottom;
 
+  /// Use this field to disable the calendar scrolling
+  final ScrollPhysics? scrollPhysics;
+
   /// Defines scroll physics for a page of a week view.
   ///
   /// This can be used to disable the horizontal scroll of a page.
@@ -269,6 +279,7 @@ class WeekView<T extends Object?> extends StatefulWidget {
     this.weekDayBuilder,
     this.weekNumberBuilder,
     this.backgroundColor = Colors.white,
+    this.scrollPhysics,
     this.scrollOffset = 0.0,
     this.onEventTap,
     this.onEventLongTap,
@@ -298,6 +309,7 @@ class WeekView<T extends Object?> extends StatefulWidget {
     this.fullDayHeaderTitle = '',
     this.fullDayHeaderTextConfig,
     this.keepScrollOffset = false,
+    this.onTimestampTap,
   })  : assert(!(onHeaderTitleTap != null && weekPageHeaderBuilder != null),
             "can't use [onHeaderTitleTap] & [weekPageHeaderBuilder] simultaneously"),
         assert((timeLineOffset) >= 0,
@@ -456,12 +468,19 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
     }
 
     _eventArranger = widget.eventArranger ?? SideEventArranger<T>();
+    _startHour = widget.startHour;
+    _endHour = widget.endHour;
 
     // Update heights.
     _calculateHeights();
 
     // Update builders and callbacks
     _assignBuilders();
+
+    if (widget.scrollOffset != oldWidget.scrollOffset) {
+      _lastScrollOffset = widget.scrollOffset;
+      _scrollController.jumpTo(widget.scrollOffset);
+    }
   }
 
   @override
@@ -502,7 +521,10 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                       itemBuilder: (_, index) {
                         final dates = DateTime(_minDate.year, _minDate.month,
                                 _minDate.day + (index * DateTime.daysPerWeek))
-                            .datesOfWeek(start: widget.startDay);
+                            .datesOfWeek(
+                          start: widget.startDay,
+                          showWeekEnds: widget.showWeekends,
+                        );
 
                         return ValueListenableBuilder(
                           valueListenable: _scrollConfiguration,
@@ -519,6 +541,7 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                             liveTimeIndicatorSettings:
                                 _liveTimeIndicatorSettings,
                             timeLineBuilder: _timeLineBuilder,
+                            onTimestampTap: widget.onTimestampTap,
                             onTileTap: widget.onEventTap,
                             onTileLongTap: widget.onEventLongTap,
                             onDateLongPress: widget.onDateLongPress,
@@ -557,6 +580,7 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                             fullDayHeaderTitle: _fullDayHeaderTitle,
                             fullDayHeaderTextConfig: _fullDayHeaderTextConfig,
                             lastScrollOffset: _lastScrollOffset,
+                            scrollPhysics: widget.scrollPhysics,
                             scrollListener: _scrollPageListener,
                             keepScrollOffset: widget.keepScrollOffset,
                           ),
@@ -812,7 +836,9 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
       startDate: _currentStartDate,
       endDate: _currentEndDate,
       onNextDay: nextPage,
+      showNextIcon: endDate != _maxDate,
       onPreviousDay: previousPage,
+      showPreviousIcon: startDate != _minDate,
       onTitleTapped: () async {
         if (widget.onHeaderTitleTap != null) {
           widget.onHeaderTitleTap!(startDate);

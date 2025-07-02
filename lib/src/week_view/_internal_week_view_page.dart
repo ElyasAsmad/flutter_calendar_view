@@ -160,6 +160,12 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
 
+  /// Use this field to disable the calendar scrolling
+  final ScrollPhysics? scrollPhysics;
+
+  /// This method will be called when user taps on timestamp in timeline.
+  final TimestampCallback? onTimestampTap;
+
   /// A single page for week view.
   const InternalWeekViewPage({
     Key? key,
@@ -202,8 +208,10 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
     required this.emulateVerticalOffsetBy,
     required this.onTileDoubleTap,
     required this.endHour,
+    required this.onTimestampTap,
     this.fullDayHeaderTitle = '',
     required this.fullDayHeaderTextConfig,
+    required this.scrollPhysics,
     required this.scrollListener,
     required this.weekViewScrollController,
     this.lastScrollOffset = 0.0,
@@ -339,6 +347,7 @@ class _InternalWeekViewPageState<T extends Object?>
               controller: widget.keepScrollOffset
                   ? scrollController
                   : widget.weekViewScrollController,
+              physics: widget.scrollPhysics,
               child: SizedBox(
                 height: widget.height,
                 width: widget.width,
@@ -346,21 +355,20 @@ class _InternalWeekViewPageState<T extends Object?>
                   children: [
                     CustomPaint(
                       size: Size(widget.width, widget.height),
-                      painter: HourLinePainter(
-                        lineColor: widget.hourIndicatorSettings.color,
-                        lineHeight: widget.hourIndicatorSettings.height,
-                        offset: widget.timeLineWidth +
+                      painter: widget.hourLinePainter(
+                        widget.hourIndicatorSettings.color,
+                        widget.hourIndicatorSettings.height,
+                        widget.timeLineWidth +
                             widget.hourIndicatorSettings.offset,
-                        minuteHeight: widget.heightPerMinute,
-                        verticalLineOffset: widget.verticalLineOffset,
-                        showVerticalLine: widget.showVerticalLine,
-                        lineStyle: widget.hourIndicatorSettings.lineStyle,
-                        dashWidth: widget.hourIndicatorSettings.dashWidth,
-                        dashSpaceWidth:
-                            widget.hourIndicatorSettings.dashSpaceWidth,
-                        emulateVerticalOffsetBy: widget.emulateVerticalOffsetBy,
-                        startHour: widget.startHour,
-                        endHour: widget.endHour,
+                        widget.heightPerMinute,
+                        widget.showVerticalLine,
+                        widget.verticalLineOffset,
+                        widget.hourIndicatorSettings.lineStyle,
+                        widget.hourIndicatorSettings.dashWidth,
+                        widget.hourIndicatorSettings.dashSpaceWidth,
+                        widget.emulateVerticalOffsetBy,
+                        widget.startHour,
+                        widget.endHour,
                       ),
                     ),
                     if (widget.showHalfHours)
@@ -470,6 +478,7 @@ class _InternalWeekViewPageState<T extends Object?>
                       liveTimeIndicatorSettings:
                           widget.liveTimeIndicatorSettings,
                       endHour: widget.endHour,
+                      onTimestampTap: widget.onTimestampTap,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0)

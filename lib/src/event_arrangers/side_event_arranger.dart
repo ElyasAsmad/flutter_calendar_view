@@ -8,6 +8,7 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
   /// This class will provide method that will arrange
   /// all the events side by side.
   const SideEventArranger({
+    this.maxWidth,
     this.includeEdges = false,
   });
 
@@ -18,6 +19,12 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
   /// If includeEdges is true, it will offset the events else it will not.
   ///
   final bool includeEdges;
+
+  /// If enough space is available, the event slot will
+  /// use the specified max width.
+  /// Otherwise, it will reduce to fit all events in the cell.
+  /// If max width is not specified, slots will expand to fill the cell.
+  final double? maxWidth;
 
   /// {@macro event_arranger_arrange_method_doc}
   ///
@@ -31,8 +38,10 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
     required double width,
     required double heightPerMinute,
     required int startHour,
+    required DateTime calendarViewDate,
   }) {
     final totalWidth = width;
+    final startHourInMinutes = startHour * 60;
 
     List<_SideEventConfigs<T>> _categorizedColumnedEvents(
         List<CalendarEventData<T>> events) {
@@ -42,6 +51,7 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
         width: width,
         heightPerMinute: heightPerMinute,
         startHour: startHour,
+        calendarViewDate: calendarViewDate,
       );
 
       final arranged = <_SideEventConfigs<T>>[];
@@ -100,7 +110,8 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
       final arranged = <OrganizedCalendarEventData<T>>[];
 
       for (final event in events) {
-        final slotWidth = width / event.columns;
+        final slotWidth =
+            math.min(width / event.columns, maxWidth ?? double.maxFinite);
 
         if (event.event.isNotEmpty) {
           // TODO(parth): Arrange events and add it in arranged.
@@ -109,27 +120,71 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
             final startTime = e.startTime!;
             final endTime = e.endTime!;
 
-            // startTime.getTotalMinutes returns the number of minutes from 00h00 to the beginning hour of the event
-            // But the first hour to be displayed (startHour) could be 06h00, so we have to substract
-            // The number of minutes from 00h00 to startHour which is equal to startHour * 60
+            int eventStart;
+            int eventEnd;
 
-            final bottom = height -
-                (endTime.getTotalMinutes - (startHour * 60) == 0
-                        ? Constants.minutesADay - (startHour * 60)
-                        : endTime.getTotalMinutes - (startHour * 60)) *
-                    heightPerMinute;
+            if (e.isRangingEvent) {
+              // Handle multi-day events differently based on which day is currently being viewed
+              final isStartDate =
+                  calendarViewDate.isAtSameMomentAs(e.date.withoutTime);
+              final isEndDate =
+                  calendarViewDate.isAtSameMomentAs(e.endDate.withoutTime);
 
-            final top = (startTime.getTotalMinutes - (startHour * 60)) *
-                heightPerMinute;
+              if (isStartDate && isEndDate) {
+                // Single day event with start and end time
+                eventStart = startTime.getTotalMinutes - (startHourInMinutes);
+                eventEnd = endTime.getTotalMinutes - (startHourInMinutes) <= 0
+                    ? Constants.minutesADay - (startHourInMinutes)
+                    : endTime.getTotalMinutes - (startHourInMinutes);
+              } else if (isStartDate) {
+                // First day - show from start time to end of day
+                eventStart = startTime.getTotalMinutes - (startHourInMinutes);
+                eventEnd = Constants.minutesADay - (startHourInMinutes);
+              } else if (isEndDate) {
+                // Last day - show from start of day to end time
+                eventStart = 0;
+                eventEnd = endTime.getTotalMinutes - (startHourInMinutes) <= 0
+                    ? Constants.minutesADay - (startHourInMinutes)
+                    : endTime.getTotalMinutes - (startHourInMinutes);
+              } else {
+                // Middle days - show full day
+                eventStart = 0;
+                eventEnd = Constants.minutesADay - (startHourInMinutes);
+              }
+            } else {
+              // Single day event - use normal start/end times
+              eventStart = startTime.getTotalMinutes - (startHourInMinutes);
+              eventEnd = endTime.getTotalMinutes - (startHourInMinutes) <= 0
+                  ? Constants.minutesADay - (startHourInMinutes)
+                  : endTime.getTotalMinutes - (startHourInMinutes);
+            }
+
+            // Ensure values are within valid range
+            eventStart = math.max(0, eventStart);
+            eventEnd = math.min(
+              Constants.minutesADay - (startHourInMinutes),
+              eventEnd,
+            );
+
+            final top = eventStart * heightPerMinute;
+
+            // Calculate visibleMinutes (the total minutes displayed in the view)
+            final visibleMinutes = Constants.minutesADay - (startHourInMinutes);
+
+            // Check if event ends at or beyond the visible area
+            final bottom = eventEnd >= visibleMinutes
+                ? 0.0 // Event extends to bottom of view
+                : height - eventEnd * heightPerMinute;
 
             return OrganizedCalendarEventData<T>(
               left: offset,
               right: totalWidth - (offset + slotWidth),
               top: top,
               bottom: bottom,
-              startDuration: startTime,
-              endDuration: endTime,
+              startDuration: startTime.copyFromMinutes(eventStart),
+              endDuration: endTime.copyFromMinutes(eventEnd),
               events: [e],
+              calendarViewDate: calendarViewDate,
             );
           }));
         }

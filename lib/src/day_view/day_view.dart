@@ -6,22 +6,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../calendar_constants.dart';
-import '../calendar_controller_provider.dart';
-import '../calendar_event_data.dart';
-import '../components/common_components.dart';
-import '../components/day_view_components.dart';
-import '../components/event_scroll_notifier.dart';
-import '../components/safe_area_wrapper.dart';
+import '../../calendar_view.dart';
 import '../constants.dart';
-import '../enumerations.dart';
-import '../event_arrangers/event_arrangers.dart';
-import '../event_controller.dart';
-import '../extensions.dart';
-import '../modals.dart';
 import '../painters.dart';
-import '../style/header_style.dart';
-import '../typedefs.dart';
 import '_internal_day_view_page.dart';
 
 class DayView<T extends Object?> extends StatefulWidget {
@@ -45,6 +32,13 @@ class DayView<T extends Object?> extends StatefulWidget {
   final DateWidgetBuilder? timeLineBuilder;
 
   /// Builds day title bar.
+  ///
+  /// If there are some configurations that is not directly available
+  /// in [DayView], override this to create your custom header or reuse,
+  /// [CalendarPageHeader] | [DayPageHeader] | [MonthPageHeader] |
+  /// [WeekPageHeader] widgets provided by this package with your custom
+  /// configurations.
+  ///
   final DateWidgetBuilder? dayTitleBuilder;
 
   /// Builds custom PressDetector widget
@@ -164,6 +158,9 @@ class DayView<T extends Object?> extends StatefulWidget {
   /// initial offset.
   final double? scrollOffset;
 
+  /// This method will be called when user taps on timestamp in timeline.
+  final TimestampCallback? onTimestampTap;
+
   /// This method will be called when user taps on event tile.
   final CellTapCallback<T>? onEventTap;
 
@@ -279,6 +276,7 @@ class DayView<T extends Object?> extends StatefulWidget {
     this.onEventDoubleTap,
     this.endHour = Constants.hoursADay,
     this.keepScrollOffset = false,
+    this.onTimestampTap,
   })  : assert(!(onHeaderTitleTap != null && dayTitleBuilder != null),
             "can't use [onHeaderTitleTap] & [dayTitleBuilder] simultaneously"),
         assert(timeLineOffset >= 0,
@@ -473,6 +471,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                             hourIndicatorSettings: _hourIndicatorSettings,
                             hourLinePainter: _hourLinePainter,
                             date: date,
+                            onTimestampTap: widget.onTimestampTap,
                             onTileTap: widget.onEventTap,
                             onTileLongTap: widget.onEventLongTap,
                             onDateLongPress: widget.onDateLongPress,
@@ -503,6 +502,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                                 widget.emulateVerticalOffsetBy,
                             lastScrollOffset: _lastScrollOffset,
                             dayViewScrollController: _scrollController,
+                            scrollPhysics: widget.scrollPhysics,
                             scrollListener: _scrollPageListener,
                             keepScrollOffset: widget.keepScrollOffset,
                           ),
@@ -656,8 +656,10 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
   /// Default timeline builder this builder will be used if
   /// [widget.eventTileBuilder] is null
   ///
-  Widget _defaultTimeLineBuilder(date) => DefaultTimeLineMark(
-      date: date, timeStringBuilder: widget.timeStringBuilder);
+  Widget _defaultTimeLineBuilder(DateTime date) => DefaultTimeLineMark(
+        date: date,
+        timeStringBuilder: widget.timeStringBuilder,
+      );
 
   /// Default timeline builder. This builder will be used if
   /// [widget.eventTileBuilder] is null
@@ -685,7 +687,9 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
       date: _currentDate,
       dateStringBuilder: widget.dateStringBuilder,
       onNextDay: nextPage,
+      showNextIcon: date != _maxDate,
       onPreviousDay: previousPage,
+      showPreviousIcon: date != _minDate,
       onTitleTapped: () async {
         if (widget.onHeaderTitleTap != null) {
           widget.onHeaderTitleTap!(date);

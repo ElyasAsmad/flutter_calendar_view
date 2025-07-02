@@ -52,7 +52,10 @@ extension DateTimeExtensions on DateTime {
   /// will return dates
   /// [6,7,8,9,10,11,12]
   /// Where on 6th there will be monday and on 12th there will be Sunday
-  List<DateTime> datesOfWeek({WeekDays start = WeekDays.monday}) {
+  List<DateTime> datesOfWeek({
+    WeekDays start = WeekDays.monday,
+    bool showWeekEnds = true,
+  }) {
     // Here %7 ensure that we do not subtract >6 and <0 days.
     // Initial formula is,
     //    difference = (weekday - startInt)%7
@@ -63,16 +66,19 @@ extension DateTimeExtensions on DateTime {
     //
     final startDay =
         DateTime(year, month, day - (weekday - start.index - 1) % 7);
-
-    return [
-      startDay,
-      DateTime(startDay.year, startDay.month, startDay.day + 1),
-      DateTime(startDay.year, startDay.month, startDay.day + 2),
-      DateTime(startDay.year, startDay.month, startDay.day + 3),
-      DateTime(startDay.year, startDay.month, startDay.day + 4),
-      DateTime(startDay.year, startDay.month, startDay.day + 5),
-      DateTime(startDay.year, startDay.month, startDay.day + 6),
-    ];
+    // Generate weekdays with weekends or without weekends
+    final days = List.generate(
+      7,
+      (index) => DateTime(startDay.year, startDay.month, startDay.day + index),
+    )
+        .where(
+          (date) =>
+              showWeekEnds ||
+              (date.weekday != DateTime.saturday &&
+                  date.weekday != DateTime.sunday),
+        )
+        .toList();
+    return days;
   }
 
   /// Returns the first date of week containing the current date
@@ -87,11 +93,33 @@ extension DateTimeExtensions on DateTime {
   /// All the dates are week based that means it will return array of size 42
   /// which will contain 6 weeks that is the maximum number of weeks a month
   /// can have.
-  List<DateTime> datesOfMonths({WeekDays startDay = WeekDays.monday}) {
+  ///
+  /// It excludes week if `hideDaysNotInMonth` is set true and
+  /// if all dates in week comes in next month then it will excludes that week.
+  List<DateTime> datesOfMonths({
+    WeekDays startDay = WeekDays.monday,
+    bool hideDaysNotInMonth = false,
+    bool showWeekends = true,
+  }) {
     final monthDays = <DateTime>[];
+    // Start is the first weekday for each week in a month
     for (var i = 1, start = 1; i < 7; i++, start += 7) {
-      monthDays
-          .addAll(DateTime(year, month, start).datesOfWeek(start: startDay));
+      final datesInWeek =
+          DateTime(year, month, start).datesOfWeek(start: startDay).where(
+                (day) =>
+                    showWeekends ||
+                    (day.weekday != DateTime.saturday &&
+                        day.weekday != DateTime.sunday),
+              );
+      // Check does every date of week belongs to different month
+      final allDatesNotInCurrentMonth = datesInWeek.every((date) {
+        return date.month != month;
+      });
+      // if entire row contains dates of other month then skip it
+      if (hideDaysNotInMonth && allDatesNotInCurrentMonth) {
+        continue;
+      }
+      monthDays.addAll(datesInWeek);
     }
     return monthDays;
   }
@@ -135,10 +163,14 @@ extension DateTimeExtensions on DateTime {
 }
 
 extension ColorExtension on Color {
-  Color get accent =>
-      (blue / 2 >= 255 / 2 || red / 2 >= 255 / 2 || green / 2 >= 255 / 2)
-          ? Colors.black
-          : Colors.white;
+  /// TODO(Shubham): Update this getter as it uses `computeLuminance()`
+  /// which is computationally expensive
+  Color get accent {
+    final brightness = ThemeData.estimateBrightnessForColor(this);
+    return brightness == Brightness.light
+        ? Color(0xff626262)
+        : Color(0xfff0f0f0);
+  }
 }
 
 extension MaterialColorExtension on MaterialColor {
@@ -219,4 +251,21 @@ void debugLog(String message) {
 
     return false;
   }(), '');
+}
+
+/// For callbacks with one argument
+extension NullableCallback1<A> on void Function(A)? {
+  VoidCallback? safeVoidCall(A a) => this == null ? null : () => this!(a);
+}
+
+/// For callbacks with two arguments
+extension NullableCallback2<A, B> on void Function(A, B)? {
+  VoidCallback? safeVoidCall(A a, B b) =>
+      this == null ? null : () => this!(a, b);
+}
+
+/// For callbacks with three arguments
+extension NullableCallback3<A, B, C> on void Function(A, B, C)? {
+  VoidCallback? safeVoidCall(A a, B b, C c) =>
+      this == null ? null : () => this!(a, b, c);
 }

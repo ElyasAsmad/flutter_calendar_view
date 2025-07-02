@@ -14,17 +14,27 @@ class WeekViewWidget extends StatelessWidget {
     return WeekView(
       key: state,
       width: width,
+      showWeekends: true,
       showLiveTimeLineInAllDays: true,
+      eventArranger: SideEventArranger(maxWidth: 30),
       timeLineWidth: 65,
+      scrollPhysics: const BouncingScrollPhysics(),
       liveTimeIndicatorSettings: LiveTimeIndicatorSettings(
         color: Colors.redAccent,
         showTime: true,
       ),
+      onTimestampTap: (date) {
+        SnackBar snackBar = SnackBar(
+          content: Text("On tap: ${date.hour} Hr : ${date.minute} Min"),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      },
       onEventTap: (events, date) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => DetailsPage(
               event: events.first,
+              date: date,
             ),
           ),
         );
